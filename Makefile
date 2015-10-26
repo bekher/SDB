@@ -1,7 +1,7 @@
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -Wall -g
 DEPS = sdb.h
-OBJ = sdb.o 
+OBJ = sdb.o testdriver.c
 
 %.o: %.c $(DEPS)
 	        $(CC) $(CFLAGS) -c -o $@ $<

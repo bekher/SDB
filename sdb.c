@@ -8,7 +8,7 @@ char * read_entry(DB * db, int tableid, int entryid) {
 	// find table
 	Table * resTable = NULL;
 	for (Table * t = db->table_head; t != NULL; t = t->next) {
-		if (t->id == entryid) {
+		if (t->id == tableid) {
 			resTable = t;
 			break;
 		}
@@ -33,8 +33,9 @@ int write_entry(DB * db, int tableid, int entryid, const char * data) {
 	if (db == NULL) return -1;
 	// find table
 	Table * resTable = NULL;
+
 	for (Table * t = db->table_head; t != NULL; t = t->next) {
-		if (t->id == entryid) {
+		if (t->id == tableid) {
 			resTable = t;
 			break;
 		}
@@ -167,7 +168,7 @@ void remove_entry(Table * table, int entryid) {
 	for (Entry * e = table->entry_head; e != NULL;) {
 		if (e->id == entryid) {
 			if (prev == NULL) {
-				table->entry_head = e;
+				table->entry_head = e->next;
 			} else {
 				prev->next = e->next;
 			}
@@ -180,8 +181,9 @@ void remove_entry(Table * table, int entryid) {
 
 void destroy_db(DB * db) {
 	if (db == NULL) return;
+	Table * next = NULL;
 	for (Table * t = db->table_head; t != NULL;) {
-		Table * next = t->next;
+		next = t->next;
 		destroy_table(t);
 		t = next;
 	}
@@ -193,8 +195,9 @@ void destroy_db(DB * db) {
 	
 void destroy_table(Table * table) {
 	if (table == NULL) return;
+	Entry * next = NULL;
 	for (Entry * e = table->entry_head; e != NULL;) {
-		Entry * next = e->next;
+		next = e->next;
 		destroy_entry(e);
 		e = next;
 	}
@@ -208,5 +211,4 @@ void destroy_entry(Entry * entry) {
 	if (entry == NULL) return;
 	if (entry->data != NULL) free(entry->data);
 	free(entry);
-
 }
