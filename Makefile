@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -g
-DEPS = sdb.h
-OBJ = sdb.o testdriver.c
+DEPS = sdb.h ext.h
+OBJ = sdb.o ext.c server.c
 
 %.o: %.c $(DEPS)
 	        $(CC) $(CFLAGS) -c -o $@ $<

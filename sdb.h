@@ -1,6 +1,8 @@
 #ifndef SDB_H
 #define SDB_H
 
+#define START_ID 100
+
 typedef struct EntryStruct {
 	int id;
 	char * data;
@@ -42,6 +44,10 @@ void destroy_db(DB * db);
 void destroy_table(Table * table);
 void destroy_entry(Entry * entry);
 
+// other utils
 
+char * all_data_from_table(Table * table);
+char * all_tables(DB * db);
+Table * table_for_id(DB * db, int id);
 #endif
 

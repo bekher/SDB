@@ -7,13 +7,9 @@ char * read_entry(DB * db, int tableid, int entryid) {
 	if (db == NULL) return NULL;
 	// find table
 	Table * resTable = NULL;
-	for (Table * t = db->table_head; t != NULL; t = t->next) {
-		if (t->id == tableid) {
-			resTable = t;
-			break;
-		}
-	}
-	
+
+	resTable = table_for_id(db, tableid);
+
 	if (resTable == NULL) return NULL;
 	
 	// find entry
@@ -34,12 +30,7 @@ int write_entry(DB * db, int tableid, int entryid, const char * data) {
 	// find table
 	Table * resTable = NULL;
 
-	for (Table * t = db->table_head; t != NULL; t = t->next) {
-		if (t->id == tableid) {
-			resTable = t;
-			break;
-		}
-	}
+	resTable = table_for_id(db, tableid);
 	
 	if (resTable == NULL) return -1;
 	
@@ -84,7 +75,8 @@ DB * create_db(const char * dbname) {
 
 	db->name = name;
 	db->num_tables = 0;
-	db->last_id = 0;
+	db->last_id = START_ID;
+	db->table_head = NULL;
 	return db;
 }
 
@@ -105,10 +97,13 @@ Table * create_table(DB * db, const char * tablename) {
 	strcpy(name, tablename);
 
 	table->name = name;
-	table->id = (++(db->last_id));
+	table->id = (db->last_id++);
+	table->last_id = START_ID;
 	db->num_tables++;
 	table->next = db->table_head;
 	db->table_head = table;
+	table->entry_head = NULL;
+	table->num_entries = 0;
 
 	return table;
 }
@@ -134,7 +129,7 @@ Entry * create_entry(Table * table, const char * data) {
 	}
 
 	entry->data = _data;
-	entry->id = (++(table->last_id));
+	entry->id = (table->last_id++);
 	table->num_entries++;
 	entry->next = table->entry_head;
 	table->entry_head = entry;
@@ -149,7 +144,7 @@ void remove_table(DB * db, int tableid) {
 	for (Table * t = db->table_head; t != NULL;) {
 		if (t->id == tableid) {
 			if (prev == NULL) {
-				db->table_head = t;
+				db->table_head = t->next;
 			} else {
 				prev->next = t->next;
 			}
@@ -211,4 +206,88 @@ void destroy_entry(Entry * entry) {
 	if (entry == NULL) return;
 	if (entry->data != NULL) free(entry->data);
 	free(entry);
+}
+
+#define NO_ENTRIES "Table has no entries\n"
+// take an uninitialized char*, put result in
+char * all_data_from_table(Table * table) {
+	const char * fmt = "%d '%s'\n";
+	char * buf = NULL, *cur = NULL;
+	if (table == NULL) 
+		return NULL;
+
+	if (table->num_entries <= 0) {
+		buf = malloc(strlen(NO_ENTRIES) + 1);
+		strcpy(buf, NO_ENTRIES);
+		return buf;
+	}
+	int size = 0, fmtsize = strlen(fmt) + 1;
+	Entry * e = table->entry_head;
+	while (e != NULL) {
+		size += strlen(e->data);
+		size += fmtsize;
+		size += 10; // digits, assume we won't have more than 10^10-1 entries
+		e = e->next;
+	}
+	buf = malloc(size + 1);
+	e = table->entry_head;
+	int i = 0, written;
+	cur = buf;
+	while (e) {
+		written = sprintf(cur, fmt, e->id, e->data);
+		if (written == -1) return NULL;
+		e = e->next;
+		i++;
+		cur += written;
+	}
+
+	return buf;
+}
+
+#define NO_TABLES "DB has no tables\n"
+char * all_tables(DB * db) {
+	const char * fmt = "%d '%s'\n";
+	char * buf = NULL, *cur = NULL;
+	if (db == NULL) 
+		return NULL;
+
+	if (db->num_tables <= 0) {
+		buf = malloc(strlen(NO_TABLES) + 1);
+		strcpy(buf, NO_TABLES);
+		return buf;
+	}
+
+	int size = 0, fmtsize = strlen(fmt) + 1;
+	Table * t = db->table_head;
+	while (t != NULL) {
+		size += strlen(t->name);
+		size += fmtsize;
+		size += 10; // digits, assume we won't have more than 10^10-1 entries
+		t = t->next;
+	}
+	buf = malloc(size + 1);
+	t = db->table_head;
+
+	int i = 0, written;
+	cur = buf;
+	while (t) {
+		written = sprintf(cur, fmt, t->id, t->name);
+		if (written == -1) return NULL;
+		t = t->next;
+		i++;
+		cur += written;
+	}
+
+	return buf;
+}
+
+Table * table_for_id(DB * db, int id) {
+	Table * t = db->table_head;
+
+	while (t) {
+		if (t->id == id) return t;
+		t = t->next;
+	}
+
+	return NULL;
 }

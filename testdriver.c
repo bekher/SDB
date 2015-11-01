@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "sdb.h"
+#include "ext.h"
 
 int main() {
 	DB * db = create_db("testdb");
 
 	if (db == NULL) {
-	   	perror("db_create() fail");
+		perror("db_create() fail");
 		return 1;
 	}
 
@@ -33,10 +35,14 @@ int main() {
 		perror("read_res() fail");
 	}
 
-	remove_entry(table, entry_id);	
-	remove_table(db, table->id);
-	destroy_db(db);
+	write_entry(db, table->id, -1, "bobby");
 
-	printf("Success!\n");
+	//remove_entry(table, entry_id);	
+	//remove_table(db, table->id);
+
+	//char * data = malloc(db_size(db));
+	//int res = serialize_db(&data, db);
+	//printf("Success! %d\n", res);
+	destroy_db(db);
 	return 0;
 }
