@@ -45,6 +45,13 @@ void *get_in_addr(struct sockaddr *sa) {
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+/* lt 100 - list table with id
+   la - list all tables
+   ae 100 str - add entry to table w/id w/string
+   de 101 100 - delete entry 100 from table 101
+   at str - add table with name
+*/
+
 char * handle_input(DB * db, char * input) {
 	char op[4], val[256], *res = NULL;
 	int id;
@@ -180,14 +187,20 @@ int main(int argc, char ** argv) {
 				get_in_addr((struct sockaddr *)&their_addr),
 				s, sizeof s);
 		printf("server: got connection from %s\n", s);
-
+		/*int pipefd[2];
+		char buf;
+		pipe(pipefd);*/
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
+			// close read end of pipe
+			//close(pipefd[0]);
 			// yup buffer overflow
 			char buf[1024], * parse_res = NULL; 
 			int nbytes;
 			send(new_fd, GREETING, strlen(GREETING)+1, 0);
 			while (1) {
+				// instead of dealing with pipes, we will serialize
+				// and unserialize for each operation
 				buf[0] = '\0';
 				
 				if ((nbytes = recv(new_fd, buf, sizeof buf, 0)) <= 0)
@@ -202,7 +215,9 @@ int main(int argc, char ** argv) {
 				
 				if (buf[0] != '\0' && buf[0] != '\n' && buf[0] != '\r') {
 					parse_res = handle_input(db, buf);
-	
+					/*write(pipefd[1], buf, strlen(buf)+1);
+					close(pipefd[1]);
+					*/	
 					printf("sending: %s", parse_res);
 
 					if (send(new_fd, parse_res, strlen(parse_res)+1, 0) == -1) 
@@ -214,12 +229,14 @@ int main(int argc, char ** argv) {
 			if (parse_res)
 				free(parse_res);
 
+			/*write(pipefd[1], "exit", 5);
+			close(pipefd[0]);
+			close(pipefd[1]);*/
 			printf("child is exiting\n");
 			exit(0);
 
 		}
 		close(new_fd);  // parent doesn't need this
-
 	}
 	destroy_db(db);
 

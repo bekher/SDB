@@ -40,9 +40,33 @@ int main() {
 	//remove_entry(table, entry_id);	
 	//remove_table(db, table->id);
 
-	//char * data = malloc(db_size(db));
-	//int res = serialize_db(&data, db);
-	//printf("Success! %d\n", res);
+	char * data = malloc(db_size(db));
+	int size = serialize_db(data, db);
+	/*
+	printf("Data: %s\n", data);
+	printf("Strlen: %d\n", (int)(strlen(data)));
+	printf("DBSize: %d\n", db_size(db));
+	printf("Res: %d\n", size);
+	int test;
+	char * last = data;
+	last += sizeof(int);
+	memcpy(&test,last, sizeof(int));
+	printf("Last: %d\n", test);
+	last += sizeof(int);
+	char *name = malloc(strlen(last)+1);
+	strcpy(name, last);
+	printf("Name: %s\n", name);
+	last += strlen(last)+1;
+	last += sizeof(int);
+	memcpy(&test, last, sizeof(int));
+	printf("table_numentries: %d\n", test);
+*/
+	DB * copy = NULL;
+	unserialize_db(data, &copy);
+	printf("from orig: %s", all_data_from_table(db->table_head));
+	printf("from serialized copy: %s", all_data_from_table(copy->table_head));
+	free(data);
+	destroy_db(copy);
 	destroy_db(db);
 	return 0;
 }

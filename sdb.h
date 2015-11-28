@@ -1,7 +1,8 @@
 #ifndef SDB_H
 #define SDB_H
 
-#define START_ID 100
+#define START_TABLE_ID 100
+#define START_ENTRY_ID 1000
 
 typedef struct EntryStruct {
 	int id;

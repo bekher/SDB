@@ -75,7 +75,7 @@ DB * create_db(const char * dbname) {
 
 	db->name = name;
 	db->num_tables = 0;
-	db->last_id = START_ID;
+	db->last_id = START_TABLE_ID;
 	db->table_head = NULL;
 	return db;
 }
@@ -98,7 +98,7 @@ Table * create_table(DB * db, const char * tablename) {
 
 	table->name = name;
 	table->id = (db->last_id++);
-	table->last_id = START_ID;
+	table->last_id = START_ENTRY_ID;
 	db->num_tables++;
 	table->next = db->table_head;
 	db->table_head = table;
