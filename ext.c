@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include "ext.h"
 
 // get the size of ONE entry
@@ -62,7 +63,6 @@ int serialize_table(char * destbuf, Table * table) {
 	if (destbuf == NULL) 
 		return -1;
 
-	int tsize = table_size(table) + 1;
 	char * origbuf = destbuf;
 
 	// serialize static table info
@@ -84,12 +84,9 @@ int serialize_table(char * destbuf, Table * table) {
 		destbuf += sizeof(entry->id);
 		memcpy(destbuf, entry->data, strlen(entry->data) + 1);
 		destbuf += strlen(entry->data) + 1;	
-		
+
 		entry = entry->next;
 	}
-
-	printf("offset: %ld\n", destbuf-origbuf);
-	printf("actual: %d\n", tsize);
 
 	return (int)(destbuf-origbuf);
 }
@@ -138,17 +135,16 @@ int unserialize_db(char * srcbuf, DB ** destdb) {
 	name = malloc(strlen(curpos) + 1);
 	strcpy(name, curpos);
 	curpos += strlen(curpos) + 1;
-	
+
 	DB * db = malloc(sizeof(DB));
 	if (db == NULL) 
 		return -1;
 	db->name = name;
 	db->num_tables = num_tables;
 	db->last_id = last_id;
-	printf("dname: %s\n", name);
 
 	Table * table = NULL, * tprev = NULL, * thead = NULL;
-	
+
 	int tid, eid, num_entries, tlast_id;
 	char * tname, * edata;
 	while (num_tables > 0) {
@@ -183,7 +179,7 @@ int unserialize_db(char * srcbuf, DB ** destdb) {
 				return -1;
 			strcpy(edata, curpos);
 			curpos += strlen(curpos) + 1;
-			
+
 			entry = malloc(sizeof(Entry));
 			if (entry == NULL)
 				return -1;
@@ -199,7 +195,7 @@ int unserialize_db(char * srcbuf, DB ** destdb) {
 			eprev = entry;
 			--num_entries;
 		}
-		
+
 		table->entry_head = ehead;
 
 		if (tprev)
@@ -215,4 +211,39 @@ int unserialize_db(char * srcbuf, DB ** destdb) {
 	*destdb = db;
 
 	return curpos-srcbuf;
+}
+
+#define EXT_LOCKFILE_FMT ".%s_lock"
+// write marshalled db to file
+int externalize(char * destfilename, char * srcbuf, int n) {
+	/* TODO: finish lockfile 
+	   char * lockfilename = malloc(strlen(EXT_LOCKFILE_FMT) + 
+	   strlen(srcfilename) + 1);
+	   sprintf(lockfilename, EXT_LOCKFILE_FMT, srcfilename);
+	   FILE * lockfile = fopen(lockfilename, "r");
+
+	   char lockfilebuf[1];
+	   lockfilebuf[0] = '!';
+	   while (lockfilebuf[0] == '!')
+	   fgets(lockfilebuf, 1, lockfile);
+	 */
+
+	//char * buf = malloc(sizeof(n));
+	FILE * destfile = fopen(destfilename, "wb");	
+	int size = fwrite(srcbuf, n, 1, destfile);
+	fclose(destfile);
+	//free(buf);
+	return size;
+}
+// read marshalled db from file
+int internalize(char * srcfilename, char ** srcbuf) {
+	int fsize, rsize;
+	FILE * srcfile = fopen(srcfilename, "rb");
+	fseek(srcfile, 0L, SEEK_END);
+	fsize = ftell(srcfile);
+	fseek(srcfile, 0L, SEEK_SET);
+	*srcbuf = malloc(fsize + 1);
+	rsize = fread(*srcbuf, fsize, 1, srcfile);
+	fclose(srcfile);
+	return rsize;
 }
