@@ -62,7 +62,10 @@ int main() {
 	printf("table_numentries: %d\n", test);
 */
 	DB * copy = NULL;
-	unserialize_db(data, &copy);
+	externalize("test_db", data, size);
+	char * new_cp = NULL;
+	internalize("test_db", &new_cp);
+	unserialize_db(new_cp, &copy);
 	printf("from orig: %s", all_data_from_table(db->table_head));
 	printf("from serialized copy: %s", all_data_from_table(copy->table_head));
 	free(data);
