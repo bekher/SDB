@@ -17,6 +17,7 @@
 #include <signal.h>
 
 #include "sdb.h"
+#include "ext.h"
 
 #define PORT "8900"
 #define BACKLOG 10
@@ -30,6 +31,8 @@
 
 #define GREETING "Connected to Super-simple serializable DataBase (SDB)\n"
 #define GOODBYE "Goodbye!\n"
+
+#define EXT_FILE "sdb_server.db"
 #define MAX_DIGITS 10
 
 void sigchld_handler(int s) {
@@ -122,6 +125,12 @@ int main(int argc, char ** argv) {
 
 	// DB 
 	DB * db = create_db("db1");
+	char * serialize_buf;
+
+	serialize_buf = malloc(db_size(db));
+	int serialize_size = serialize_db(serialize_buf, db);
+	externalize(EXT_FILE, serialize_buf, serialize_size);
+	free(serialize_buf);
 
 	if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
@@ -173,7 +182,7 @@ int main(int argc, char ** argv) {
 		exit(1);
 	}
 
-	printf("server: bind successful, listening...\n");
+	printf("Bind successful, listening...\n");
 
 	while(1) {
 		sin_size = sizeof their_addr;
@@ -186,10 +195,8 @@ int main(int argc, char ** argv) {
 		inet_ntop(their_addr.ss_family,
 				get_in_addr((struct sockaddr *)&their_addr),
 				s, sizeof s);
-		printf("server: got connection from %s\n", s);
-		/*int pipefd[2];
-		char buf;
-		pipe(pipefd);*/
+		printf("Got connection from %s\n", s);
+		
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
 			// close read end of pipe
@@ -201,12 +208,17 @@ int main(int argc, char ** argv) {
 			while (1) {
 				// instead of dealing with pipes, we will serialize
 				// and unserialize for each operation
+				destroy_db(db);
+				internalize(EXT_FILE, &serialize_buf);
+				unserialize_db(serialize_buf, &db);
+				free(serialize_buf);
 				buf[0] = '\0';
-				
+				printf("Internalizing DB named %s\n", db->name);
+
 				if ((nbytes = recv(new_fd, buf, sizeof buf, 0)) <= 0)
 					break;
 
-				printf("received %s", buf);
+				printf("Received %s", buf);
 
 				if (strncmp(buf, "exit", 4) == 0) {
 					send(new_fd, GOODBYE, strlen(GOODBYE)+1, 0);
@@ -215,10 +227,13 @@ int main(int argc, char ** argv) {
 				
 				if (buf[0] != '\0' && buf[0] != '\n' && buf[0] != '\r') {
 					parse_res = handle_input(db, buf);
-					/*write(pipefd[1], buf, strlen(buf)+1);
-					close(pipefd[1]);
-					*/	
-					printf("sending: %s", parse_res);
+					// write out modified DB
+					serialize_buf = malloc(db_size(db));
+					serialize_size = serialize_db(serialize_buf, db);
+					externalize(EXT_FILE, serialize_buf, serialize_size);
+					free(serialize_buf);
+					printf("Externalized modified DB\n");
+					printf("Sending: %s", parse_res);
 
 					if (send(new_fd, parse_res, strlen(parse_res)+1, 0) == -1) 
 						break;
@@ -229,10 +244,13 @@ int main(int argc, char ** argv) {
 			if (parse_res)
 				free(parse_res);
 
-			/*write(pipefd[1], "exit", 5);
-			close(pipefd[0]);
-			close(pipefd[1]);*/
-			printf("child is exiting\n");
+			serialize_buf = malloc(db_size(db));
+			serialize_size = serialize_db(serialize_buf, db);
+			externalize(EXT_FILE, serialize_buf, serialize_size);
+			free(serialize_buf);
+			destroy_db(db);
+
+			printf("Child is exiting\n");
 			exit(0);
 
 		}
