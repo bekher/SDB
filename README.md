@@ -10,5 +10,5 @@ To test with the provided driver after compiling, run `sdb`
 
 ###TODO:
 * Review API function paramaters
-* Database does not persist between connections, child contains copied db struct, should talk to parent instead. 
-* Persist data, save to file
+* Add lockfile to in/externalizers
+* Fix buffer overflows
