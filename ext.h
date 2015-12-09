@@ -15,8 +15,8 @@ int serialize_db(char * destbuf, DB * srcdb);
 int unserialize_db(char * srcbuf, DB ** destdb);
 
 // write marshalled db to file
-int externalize(char * srcfilename, char ** destbuf);
+int externalize(char * destfilename, char * srcbuf, int n);
 // read marshalled db from file
-int internalize(char * dstfilename, char * srcbuf);
+int internalize(char * srcfilename, char ** destbuf);
 #endif
 
